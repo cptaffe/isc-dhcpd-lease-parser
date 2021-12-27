@@ -1,0 +1,113 @@
+<html>
+    <title>DHCPv4 Leases</title>
+    <style>
+        body {
+            font-family: sans-serif;
+        }
+        table {
+            border-collapse: separate;
+            border-spacing: 15px;
+        }
+    </style>
+</html>
+<body>
+    <h2>DHCPv4 Leases</h2>
+
+    <table>
+        <tr>
+            <th>IP</th>
+            <th>Hostname</th>
+            <th>DNS</th>
+            <th>MAC</th>
+            <th>MAC Vendor</th>
+            <th>Vendor ID</th>
+            <th>State</th>
+            <th>Start</th>
+            <th>End</th>
+        </tr>
+        {{ range $val := .DHCPv4Leases }}
+        <tr>
+            <td><a href="http://{{.IP}}">{{ .IP }}</a></td>
+            <td>{{ .ClientHostname }}</td>
+            
+            {{/* Check DNS against reverse DNS lookup */}}
+            {{ $host := revdns .IP }}
+            {{ if dnseq $host .DDNSFwdName }}
+            <td><a href="http://{{.DDNSFwdName}}">{{.DDNSFwdName}}</a></td>
+            {{ else }}
+            <td><a style="text-decoration: line-through;" href="http://{{.DDNSFwdName}}">{{.DDNSFwdName}}</a></td>
+            {{ end }}
+            
+            <td>{{ .HardwareEthernet }}</td>
+            <td>{{ vendor .HardwareEthernet }}</td>
+            <td>{{ .VendorClassIdentifier }}</td>
+            <td>{{ .BindingState | title }}</td>
+            
+            {{/* Display friendly times and if expired */}}
+            
+            {{ if isPast .Starts }}
+            <td title="{{ .Starts }}">{{ since .Starts | duration }} ago</td>
+            {{ else }}
+            <td title="{{ .Starts }}">{{ until .Starts | duration }}</td>
+            {{ end }}
+            {{ if isPast .Ends }}
+            <td title="{{ .Ends }}">{{ since .Ends | duration }} ago</td>
+            {{ else }}
+            <td title="{{ .Ends }}">{{ until .Ends | duration }}</td>
+            {{ end }}
+        </tr>
+        {{ end }}
+    </table>
+
+    <h2>DHCPv6 Leases</h2>
+
+    <table>
+        <tr>
+            <th>IP</th>
+            <th>Type</th>
+            <th>MAC</th>
+            <th>MAC Vendor</th>
+            <th>State</th>
+            <th>CLTT</th>
+            <th>End</th>
+        </tr>
+        {{ range $lease := .DHCPv6Leases }}
+        <tr>
+
+            {{ range $addr := .Addrs }}
+
+            <td><a href="http://{{$addr.IP}}">{{ $addr.IP }}</a></td>
+
+            <td>{{ $lease.Type }}</td>
+            
+            {{ if $lease.DUID.LL }}
+            <td>{{ $lease.DUID.LL.HardwareAddr }}</td>
+            <td>{{ vendor $lease.DUID.LL.HardwareAddr }}</td>
+            {{ else if $lease.DUID.LLT }}
+            <td>{{ $lease.DUID.LLT.HardwareAddr }}</td>
+            <td>{{ vendor $lease.DUID.LLT.HardwareAddr }}</td>
+            {{ else }}
+            <td></td>
+            <td></td>
+            {{ end }}
+
+            <td>{{ $addr.BindingState | title }}</td>
+            
+            {{/* Display friendly times and if expired */}}
+            
+            {{ if isPast $lease.CLTT }}
+            <td title="{{ $lease.CLTT }}">{{ since $lease.CLTT | duration }} ago</td>
+            {{ else }}
+            <td title="{{ $lease.CLTT }}">{{ until $lease.CLTT | duration }}</td>
+            {{ end }}
+            {{ if isPast $addr.Ends }}
+            <td title="{{ $addr.Ends }}">{{ since $addr.Ends | duration }} ago</td>
+            {{ else }}
+            <td title="{{ $addr.Ends }}">{{ until $addr.Ends | duration }}</td>
+            {{ end }}
+
+            {{ end }}
+        </tr>
+        {{ end }}
+    </table>
+</body>
