@@ -90,6 +90,7 @@
         <thead>
             <tr>
                 <th>IP</th>
+                <th>DNS</th>
                 <th>Type</th>
                 <th>MAC</th>
                 <th>MAC Vendor</th>
@@ -105,6 +106,8 @@
                 {{ range $addr := .Addrs }}
 
                 <td><a href="http://{{$addr.IP}}">{{ $addr.IP }}</a></td>
+                {{ $host := revdns $addr.IP }}
+                <td><a href="http://{{$host}}">{{$host}}</a></td>
 
                 <td>{{ $lease.Type }}/{{ $lease.DUID.Type }}</td>
 
