@@ -1,5 +1,26 @@
 <html>
     <title>DHCPv4 Leases</title>
+
+    <!--
+    DataTables provides sortable and searchable tables.
+    If this UI evolves into something larger, consider migrating away from jQuery.
+    -->
+    <link rel="stylesheet"
+          href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.min.css"
+          integrity="sha256-HgWqvjUnIFnIyvZfubxsrPjpr1zLvnyeR04LAO3ikmw="
+          crossorigin="anonymous" />
+    <script src="https://code.jquery.com/jquery-3.6.0.slim.min.js"
+            integrity="sha256-u7e5khyithlIdTpu22PHhENmPcRdFiHRjhAuHcs05RI="
+            crossorigin="anonymous"></script>
+    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"
+            integrity="sha256-gOJ/T3VMQ0Brwz7VYrLoVAQ+NE0a5vHoj1vXI1HUIzY="
+            crossorigin="anonymous"></script>
+    <script>
+        $(document).ready(function () {
+            $('#dhcpv4-leases').DataTable();
+            $('#dhcpv6-leases').DataTable();
+        });
+    </script>
     <style>
         body {
             font-family: sans-serif;
@@ -13,101 +34,113 @@
 <body>
     <h2>DHCPv4 Leases</h2>
 
-    <table>
-        <tr>
-            <th>IP</th>
-            <th>Hostname</th>
-            <th>DNS</th>
-            <th>MAC</th>
-            <th>MAC Vendor</th>
-            <th>Vendor ID</th>
-            <th>State</th>
-            <th>Start</th>
-            <th>End</th>
-        </tr>
-        {{ range $val := .DHCPv4Leases }}
-        <tr>
-            <td><a href="http://{{.IP}}">{{ .IP }}</a></td>
-            <td>{{ .ClientHostname }}</td>
-            
-            {{/* Check DNS against reverse DNS lookup */}}
-            {{ $host := revdns .IP }}
-            {{ if dnseq $host .DDNSFwdName }}
-            <td><a href="http://{{.DDNSFwdName}}">{{.DDNSFwdName}}</a></td>
-            {{ else }}
-            <td><a style="text-decoration: line-through;" href="http://{{.DDNSFwdName}}">{{.DDNSFwdName}}</a></td>
+    <table id="dhcpv4-leases">
+        <thead>
+            <tr>
+                <th>IP</th>
+                <th>Hostname</th>
+                <th>DNS</th>
+                <th>MAC</th>
+                <th>MAC Vendor</th>
+                <th>Vendor ID</th>
+                <th>State</th>
+                <th>Start</th>
+                <th>End</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{ range $val := .DHCPv4Leases }}
+            <tr>
+                <td><a href="http://{{.IP}}">{{ .IP }}</a></td>
+                <td>{{ .ClientHostname }}</td>
+
+                {{/* Check DNS against reverse DNS lookup */}}
+                {{ $host := revdns .IP }}
+                {{ if dnseq $host .DDNSFwdName }}
+                <td><a href="http://{{.DDNSFwdName}}">{{.DDNSFwdName}}</a></td>
+                {{ else }}
+                <td><a style="text-decoration: line-through;" href="http://{{.DDNSFwdName}}">{{.DDNSFwdName}}</a></td>
+                {{ end }}
+
+                <td>{{ .HardwareEthernet }}</td>
+                <td>{{ vendor .HardwareEthernet }}</td>
+                <td>{{ .VendorClassIdentifier }}</td>
+                <td>{{ .BindingState | title }}</td>
+
+                {{/* Display friendly times and if expired */}}
+
+                {{ if isPast .Starts }}
+                <td title="{{ .Starts }}">{{ since .Starts | duration }} ago</td>
+                {{ else }}
+                <td title="{{ .Starts }}">{{ until .Starts | duration }}</td>
+                {{ end }}
+                {{ if isPast .Ends }}
+                <td title="{{ .Ends }}">{{ since .Ends | duration }} ago</td>
+                {{ else }}
+                <td title="{{ .Ends }}">{{ until .Ends | duration }}</td>
+                {{ end }}
+            </tr>
             {{ end }}
-            
-            <td>{{ .HardwareEthernet }}</td>
-            <td>{{ vendor .HardwareEthernet }}</td>
-            <td>{{ .VendorClassIdentifier }}</td>
-            <td>{{ .BindingState | title }}</td>
-            
-            {{/* Display friendly times and if expired */}}
-            
-            {{ if isPast .Starts }}
-            <td title="{{ .Starts }}">{{ since .Starts | duration }} ago</td>
-            {{ else }}
-            <td title="{{ .Starts }}">{{ until .Starts | duration }}</td>
-            {{ end }}
-            {{ if isPast .Ends }}
-            <td title="{{ .Ends }}">{{ since .Ends | duration }} ago</td>
-            {{ else }}
-            <td title="{{ .Ends }}">{{ until .Ends | duration }}</td>
-            {{ end }}
-        </tr>
-        {{ end }}
+        </tbody>
     </table>
 
     <h2>DHCPv6 Leases</h2>
 
-    <table>
-        <tr>
-            <th>IP</th>
-            <th>Type</th>
-            <th>MAC</th>
-            <th>MAC Vendor</th>
-            <th>State</th>
-            <th>CLTT</th>
-            <th>End</th>
-        </tr>
-        {{ range $lease := .DHCPv6Leases }}
-        <tr>
+    <table id="dhcpv6-leases">
+        <thead>
+            <tr>
+                <th>IP</th>
+                <th>Type</th>
+                <th>MAC</th>
+                <th>MAC Vendor</th>
+                <th>State</th>
+                <th>CLTT</th>
+                <th>End</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{ range $lease := .DHCPv6Leases }}
+            {{ if .Addrs }}
+            <tr>
+                {{ range $addr := .Addrs }}
 
-            {{ range $addr := .Addrs }}
+                <td><a href="http://{{$addr.IP}}">{{ $addr.IP }}</a></td>
 
-            <td><a href="http://{{$addr.IP}}">{{ $addr.IP }}</a></td>
+                <td>{{ $lease.Type }}/{{ $lease.DUID.Type }}</td>
 
-            <td>{{ $lease.Type }}</td>
-            
-            {{ if $lease.DUID.LL }}
-            <td>{{ $lease.DUID.LL.HardwareAddr }}</td>
-            <td>{{ vendor $lease.DUID.LL.HardwareAddr }}</td>
-            {{ else if $lease.DUID.LLT }}
-            <td>{{ $lease.DUID.LLT.HardwareAddr }}</td>
-            <td>{{ vendor $lease.DUID.LLT.HardwareAddr }}</td>
-            {{ else }}
-            <td></td>
-            <td></td>
+                {{ if $lease.DUID.LL }}
+                <td>{{ $lease.DUID.LL.HardwareAddr }}</td>
+                <td>{{ vendor $lease.DUID.LL.HardwareAddr }}</td>
+                {{ else if $lease.DUID.EN }}
+                <td>{{ $lease.DUID.EN.EN }}/{{ $lease.DUID.EN.HardwareAddr }}</td>
+                <td>{{ $lease.DUID.EN.EN.Organization }}</td>
+                {{ else if $lease.DUID.LLT }}
+                <td>{{ $lease.DUID.LLT.HardwareAddr }}</td>
+                <td>{{ vendor $lease.DUID.LLT.HardwareAddr }}</td>
+                {{ else }}
+                <td></td>
+                <td></td>
+                {{ end }}
+
+                <td>{{ $addr.BindingState | title }}</td>
+
+                {{/* Display friendly times and if expired */}}
+
+                {{ if isPast $lease.CLTT }}
+                <td title="{{ $lease.CLTT }}">{{ since $lease.CLTT | duration }} ago</td>
+                {{ else }}
+                <td title="{{ $lease.CLTT }}">{{ until $lease.CLTT | duration }}</td>
+                {{ end }}
+                {{ if isPast $addr.Ends }}
+                <td title="{{ $addr.Ends }}">{{ since $addr.Ends | duration }} ago</td>
+                {{ else }}
+                <td title="{{ $addr.Ends }}">{{ until $addr.Ends | duration }}</td>
+                {{ end }}
+
+                {{ end }}
+            </tr>
             {{ end }}
-
-            <td>{{ $addr.BindingState | title }}</td>
-            
-            {{/* Display friendly times and if expired */}}
-            
-            {{ if isPast $lease.CLTT }}
-            <td title="{{ $lease.CLTT }}">{{ since $lease.CLTT | duration }} ago</td>
-            {{ else }}
-            <td title="{{ $lease.CLTT }}">{{ until $lease.CLTT | duration }}</td>
             {{ end }}
-            {{ if isPast $addr.Ends }}
-            <td title="{{ $addr.Ends }}">{{ since $addr.Ends | duration }} ago</td>
-            {{ else }}
-            <td title="{{ $addr.Ends }}">{{ until $addr.Ends | duration }}</td>
-            {{ end }}
-
-            {{ end }}
-        </tr>
-        {{ end }}
+        </tbody>
     </table>
 </body>

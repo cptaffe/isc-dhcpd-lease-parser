@@ -20,6 +20,19 @@ const (
 	DUIDTypeLL
 )
 
+func (t DUIDType) String() string {
+	switch t {
+	case DUIDTypeLLT:
+		return "DUID-LLT"
+	case DUIDTypeEN:
+		return "DUID-EN"
+	case DUIDTypeLL:
+		return "DUID-LL"
+	default:
+		return "DUID-??"
+	}
+}
+
 type HardwareType uint16
 
 const (
@@ -33,8 +46,8 @@ type DUIDLLT struct {
 }
 
 type DUIDEN struct {
-	EN enterprisenumbers.EN `json:"en"`
-	ID []byte               `json:"id"`
+	EN           enterprisenumbers.EN `json:"en"`
+	HardwareAddr string               `json:"hwaddr"`
 }
 
 type DUIDLL struct {
@@ -75,10 +88,11 @@ func ParseDUID(duid []byte) (*DUID, error) {
 
 	case DUIDTypeEN:
 		en := enterprisenumbers.EN(binary.BigEndian.Uint32(duid[2:6]))
-
+		// EN can be anything, in the case of the HP ProLiant DL380 G7 it is a MAC
+		hwaddr := net.HardwareAddr(duid[6:])
 		res.EN = &DUIDEN{
-			EN: en,
-			ID: duid[6:],
+			EN:           en,
+			HardwareAddr: hwaddr.String(),
 		}
 	case DUIDTypeLL:
 		hwtype := HardwareType(binary.BigEndian.Uint16(duid[2:4]))

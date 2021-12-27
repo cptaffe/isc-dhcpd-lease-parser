@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"bytes"
 	_ "embed"
+	"fmt"
 	"io"
 	"strconv"
 	"strings"
@@ -69,6 +70,14 @@ func Lookup(en uint32) (string, bool) {
 
 type EN uint32
 
-func (e EN) Organization() (string, bool) {
-	return Lookup(uint32(e))
+func (e EN) String() string {
+	return fmt.Sprintf("%d", e)
+}
+
+func (e EN) Organization() string {
+	org, ok := Lookup(uint32(e))
+	if !ok {
+		return ""
+	}
+	return org
 }
