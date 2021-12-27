@@ -88,7 +88,7 @@ func ParseDUID(duid []byte) (*DUID, error) {
 
 	case DUIDTypeEN:
 		en := enterprisenumbers.EN(binary.BigEndian.Uint32(duid[2:6]))
-		// EN can be anything, in the case of the HP JetDirect 430p it is a MAC
+		// EN can be anything, in the case of the HP JetDirect 635n it is a MAC
 		hwaddr := net.HardwareAddr(duid[6:])
 		res.EN = &DUIDEN{
 			EN:           en,
